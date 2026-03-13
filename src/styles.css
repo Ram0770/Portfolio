@@ -766,18 +766,21 @@ a {
     padding-top: 10px;
   }
 
+  .topbar {
+    position: static;
+    width: auto;
+    padding: 0;
+  }
+
   .hero,
   .content-section {
     padding: 20px;
     border-radius: 24px;
   }
 
-  .topbar {
-    top: 10px;
-    padding: 0 10px;
-  }
-
   .topbar-inner {
+    width: 100%;
+    margin-bottom: 18px;
     align-items: flex-start;
     flex-direction: column;
   }
@@ -795,7 +798,7 @@ a {
   }
 
   .hero {
-    margin-top: 144px;
+    margin-top: 0;
   }
 }
 
