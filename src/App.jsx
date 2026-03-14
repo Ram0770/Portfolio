@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { portfolioData } from "./portfolioData";
 import profileImageSrc from "./assets/profile.jpeg";
 
@@ -31,27 +31,112 @@ function LinkIcon({ type }) {
   );
 }
 
+function MenuIcon({ open }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="menu-icon">
+      {open ? (
+        <path
+          fill="currentColor"
+          d="M18.3 7.11 16.89 5.7 12 10.59 7.11 5.7 5.7 7.11 10.59 12 5.7 16.89 7.11 18.3 12 13.41 16.89 18.3 18.3 16.89 13.41 12z"
+        />
+      ) : (
+        <path
+          fill="currentColor"
+          d="M4 7h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"
+        />
+      )}
+    </svg>
+  );
+}
+
+function AnimatedStat({ value, suffix = "", label, start }) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (!start) {
+      return;
+    }
+
+    let frameId;
+    const duration = 1200;
+    const startTime = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(Math.round(value * eased));
+
+      if (progress < 1) {
+        frameId = window.requestAnimationFrame(tick);
+      }
+    };
+
+    frameId = window.requestAnimationFrame(tick);
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [start, value]);
+
+  return (
+    <article className="reveal-card interactive-card stat-card">
+      <strong>
+        {displayValue}
+        {suffix}
+      </strong>
+      <span>{label}</span>
+    </article>
+  );
+}
+
 function App() {
   const { contact, skills, projects, education, certifications, infoPoints } = portfolioData;
   const profileImage = portfolioData.profileImage || profileImageSrc;
+  const [activeSection, setActiveSection] = useState("home");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [statsStarted, setStatsStarted] = useState(false);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    const revealObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
+            revealObserver.unobserve(entry.target);
           }
         });
       },
       { threshold: 0.18 },
     );
 
+    const sectionObserver = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries.filter((entry) => entry.isIntersecting);
+        if (visibleEntries.length === 0) {
+          return;
+        }
+
+        const mostVisible = visibleEntries.sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        setActiveSection(mostVisible.target.id);
+      },
+      {
+        threshold: [0.2, 0.45, 0.7],
+        rootMargin: "-20% 0px -35% 0px",
+      },
+    );
+
     const revealNodes = document.querySelectorAll(".reveal-card");
     const interactiveNodes = document.querySelectorAll(".interactive-card");
+    const sectionNodes = document.querySelectorAll("section[id], header[id]");
 
-    revealNodes.forEach((node) => observer.observe(node));
+    revealNodes.forEach((node) => revealObserver.observe(node));
+    sectionNodes.forEach((node) => sectionObserver.observe(node));
+
+    const updateScrollProgress = () => {
+      const scrollTop = window.scrollY;
+      const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = scrollableHeight > 0 ? (scrollTop / scrollableHeight) * 100 : 0;
+      setScrollProgress(progress);
+    };
 
     const cleanupFns = Array.from(interactiveNodes).map((node) => {
       const handleMove = (event) => {
@@ -81,14 +166,59 @@ function App() {
       };
     });
 
+    const magneticNodes = document.querySelectorAll(".magnetic-button");
+    const magneticCleanupFns = Array.from(magneticNodes).map((node) => {
+      const handleMove = (event) => {
+        const rect = node.getBoundingClientRect();
+        const x = event.clientX - rect.left - rect.width / 2;
+        const y = event.clientY - rect.top - rect.height / 2;
+        node.style.setProperty("--tx", `${x * 0.12}px`);
+        node.style.setProperty("--ty", `${y * 0.12}px`);
+      };
+
+      const handleLeave = () => {
+        node.style.setProperty("--tx", "0px");
+        node.style.setProperty("--ty", "0px");
+      };
+
+      node.addEventListener("pointermove", handleMove);
+      node.addEventListener("pointerleave", handleLeave);
+
+      return () => {
+        node.removeEventListener("pointermove", handleMove);
+        node.removeEventListener("pointerleave", handleLeave);
+      };
+    });
+
+    window.addEventListener("scroll", updateScrollProgress, { passive: true });
+    updateScrollProgress();
+
     return () => {
       cleanupFns.forEach((fn) => fn());
-      observer.disconnect();
+      magneticCleanupFns.forEach((fn) => fn());
+      revealObserver.disconnect();
+      sectionObserver.disconnect();
+      window.removeEventListener("scroll", updateScrollProgress);
     };
   }, []);
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (activeSection === "about" && !statsStarted) {
+      setStatsStarted(true);
+    }
+  }, [activeSection, statsStarted]);
+
+  const navLinkClass = (section) => `nav-link ${activeSection === section ? "is-current" : ""}`;
+
   return (
     <div className="page-shell">
+      <div className="scroll-progress" aria-hidden="true">
+        <span style={{ transform: `scaleX(${scrollProgress / 100})` }} />
+      </div>
       <nav className="topbar">
         <div className="topbar-inner">
           <a href="#home" className="brand">
@@ -98,35 +228,46 @@ function App() {
               <span>{portfolioData.role}</span>
             </div>
           </a>
-          <div className="nav-links">
-            <a href="#about" className="nav-link">
+          <button
+            type="button"
+            className="menu-toggle"
+            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((value) => !value)}
+          >
+            <MenuIcon open={menuOpen} />
+          </button>
+          <div className={`nav-links ${menuOpen ? "is-open" : ""}`}>
+            <a href="#about" className={navLinkClass("about")}>
               About
             </a>
-            <a href="#projects" className="nav-link">
+            <a href="#projects" className={navLinkClass("projects")}>
               Projects
             </a>
-            <a href="#education" className="nav-link">
+            <a href="#education" className={navLinkClass("education")}>
               Education
             </a>
-            <a href="#certifications" className="nav-link">
+            <a href="#certifications" className={navLinkClass("certifications")}>
               Certificates
             </a>
-            <a href="#contact" className="nav-cta">
+            <a href="#contact" className={`nav-cta ${activeSection === "contact" ? "is-current" : ""}`}>
               Contact
             </a>
           </div>
         </div>
       </nav>
 
-      <header className="hero reveal-card" id="home">
+      <header className="hero reveal-card hero-reveal" id="home">
+        <div className="hero-orb hero-orb-left" aria-hidden="true" />
+        <div className="hero-orb hero-orb-right" aria-hidden="true" />
         <div className="hero-grid">
           <div className="hero-copy">
             <p className="eyebrow">Available for developer roles</p>
-            <h1>{portfolioData.tagline}</h1>
+            <h1 className="hero-title">{portfolioData.tagline}</h1>
             <p className="hero-text">{portfolioData.about}</p>
 
             <div className="hero-actions">
-              <a href="#projects" className="primary-btn">
+              <a href="#projects" className="primary-btn magnetic-button">
                 View Projects
               </a>
             </div>
@@ -138,7 +279,7 @@ function App() {
             </div>
           </div>
 
-          <aside className="hero-card reveal-card interactive-card">
+          <aside className="hero-card reveal-card interactive-card hero-aside-reveal">
             <div className="profile-visual">
               {profileImage ? (
                 <img src={profileImage} alt={portfolioData.name} className="profile-image" />
@@ -179,11 +320,10 @@ function App() {
       </header>
 
       <main>
-        <section className="content-section reveal-card" id="about">
+        <section className="content-section reveal-card reveal-from-left" id="about">
           <SectionTitle
             eyebrow="About"
             title="My information"
-            text="This section brings together your profile, working focus, and the key information a recruiter or client needs first."
           />
           <div className="about-layout">
             <article className="about-card reveal-card interactive-card">
@@ -200,22 +340,13 @@ function App() {
             </article>
           </div>
           <div className="stats-grid">
-            <article className="reveal-card interactive-card">
-              <strong>4+</strong>
-              <span>featured projects</span>
-            </article>
-            <article className="reveal-card interactive-card">
-              <strong>5+</strong>
-              <span>core frontend and backend technologies</span>
-            </article>
-            <article className="reveal-card interactive-card">
-              <strong>2026</strong>
-              <span>latest certification year currently listed</span>
-            </article>
+            <AnimatedStat value={4} suffix="+" label="featured projects" start={statsStarted} />
+            <AnimatedStat value={5} suffix="+" label="core frontend and backend technologies" start={statsStarted} />
+            <AnimatedStat value={2026} label="latest certification year currently listed" start={statsStarted} />
           </div>
         </section>
 
-        <section className="content-section reveal-card" id="skills">
+        <section className="content-section reveal-card reveal-from-right" id="skills">
           <SectionTitle
             eyebrow="Skills"
             title="Frontend, backend, and product engineering foundations"
@@ -236,7 +367,7 @@ function App() {
           </div>
         </section>
 
-        <section className="content-section reveal-card" id="projects">
+        <section className="content-section reveal-card reveal-pop" id="projects">
           <SectionTitle
             eyebrow="Projects"
             title="Selected work across full-stack apps and AI-enabled systems"
@@ -271,7 +402,7 @@ function App() {
           </div>
         </section>
 
-        <section className="content-section reveal-card" id="education">
+        <section className="content-section reveal-card reveal-from-left" id="education">
           <SectionTitle eyebrow="Education" title="Academic and industry learning path" />
           <div className="timeline">
             {education.map((item) => (
@@ -285,7 +416,7 @@ function App() {
           </div>
         </section>
 
-        <section className="content-section reveal-card" id="certifications">
+        <section className="content-section reveal-card reveal-pop" id="certifications">
           <SectionTitle
             eyebrow="Certifications"
             title="Certificates and verification links"
@@ -297,7 +428,7 @@ function App() {
                 <h3>{item.title}</h3>
                 <p>{item.issuer}</p>
                 {item.link ? (
-                  <a href={item.link} target="_blank" rel="noreferrer" className="certificate-link">
+                  <a href={item.link} target="_blank" rel="noreferrer" className="certificate-link magnetic-button">
                     View Certificate
                   </a>
                 ) : null}
@@ -306,7 +437,7 @@ function App() {
           </div>
         </section>
 
-        <section className="content-section reveal-card" id="contact">
+        <section className="content-section reveal-card reveal-from-right" id="contact">
           <SectionTitle
             eyebrow="Contact"
             title="Contact information"
@@ -316,31 +447,31 @@ function App() {
             <article className="contact-card reveal-card interactive-card">
               <span className="contact-label">Mobile</span>
               <h3>{contact.phone}</h3>
-              <a href={`tel:${contact.phone.replace(/\s+/g, "")}`}>Call now</a>
+              <a href={`tel:${contact.phone.replace(/\s+/g, "")}`} className="magnetic-button">Call now</a>
             </article>
             <article className="contact-card reveal-card interactive-card">
               <span className="contact-label">Email</span>
               <h3>{contact.email}</h3>
-              <a href={`mailto:${contact.email}`}>Send email</a>
+              <a href={`mailto:${contact.email}`} className="magnetic-button">Send email</a>
             </article>
             <article className="contact-card reveal-card interactive-card">
               <span className="contact-label">GitHub</span>
               <h3>Ram0770</h3>
-              <a href={contact.github} target="_blank" rel="noreferrer">
+              <a href={contact.github} target="_blank" rel="noreferrer" className="magnetic-button">
                 Open GitHub
               </a>
             </article>
             <article className="contact-card reveal-card interactive-card">
               <span className="contact-label">LinkedIn</span>
               <h3>Professional Profile</h3>
-              <a href={contact.linkedin} target="_blank" rel="noreferrer">
+              <a href={contact.linkedin} target="_blank" rel="noreferrer" className="magnetic-button">
                 Open LinkedIn
               </a>
             </article>
             <article className="contact-card reveal-card interactive-card">
               <span className="contact-label">Location</span>
               <h3>{contact.location}</h3>
-              <a href={contact.portfolio} target="_blank" rel="noreferrer">
+              <a href={contact.portfolio} target="_blank" rel="noreferrer" className="magnetic-button">
                 View portfolio link
               </a>
             </article>
