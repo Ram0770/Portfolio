@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
-  base: "/Portfolio/",
+export default defineConfig(({ mode }) => ({
+  base: mode === "github-pages" ? "/Portfolio/" : "/",
   plugins: [react()],
-});
+}));
