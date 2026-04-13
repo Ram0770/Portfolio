@@ -33,7 +33,8 @@ function App() {
   );
 
   useEffect(() => {
-    const sections = Array.from(document.querySelectorAll("section[id], header[id]"));
+    const sectionIds = ["home", "about", "skills", "projects", "resume", "education", "certifications", "contact"];
+    const sections = sectionIds.map((id) => document.getElementById(id)).filter(Boolean);
     const sectionObserver = new IntersectionObserver(
       (entries) => {
         const visible = entries.filter((entry) => entry.isIntersecting);
@@ -43,7 +44,7 @@ function App() {
         const current = visible.sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
         setActiveSection(current.target.id);
       },
-      { threshold: [0.2, 0.45, 0.7], rootMargin: "-18% 0px -42% 0px" },
+      { threshold: [0.2, 0.4, 0.6, 0.8], rootMargin: "-16% 0px -48% 0px" },
     );
 
     sections.forEach((section) => sectionObserver.observe(section));
