@@ -3,6 +3,7 @@ export const portfolioData = {
   role: "Full Stack Developer",
   tagline: "Building product-ready web experiences with React, Node.js, and Python.",
   profileImage: "",
+  resume: "/resume.pdf",
   about:
     "Full Stack Developer with hands-on experience building web applications using React, Node.js, and Python. Developed multiple projects including AI-based applications, retail systems, and full-stack platforms. Passionate about building scalable products and continuously learning modern technologies.",
   infoPoints: [

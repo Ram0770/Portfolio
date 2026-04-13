@@ -1,173 +1,99 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { portfolioData } from "./portfolioData";
 import profileImageSrc from "./assets/profile.jpeg";
+import { BackgroundScene } from "./components/BackgroundScene";
+import { Navigation } from "./components/Navigation";
+import { SectionHeading } from "./components/SectionHeading";
 
-function SectionTitle({ eyebrow, title, text }) {
-  return (
-    <div className="section-heading">
-      <span>{eyebrow}</span>
-      <h2>{title}</h2>
-      {text ? <p>{text}</p> : null}
-    </div>
-  );
-}
+const HeroScene = lazy(() => import("./components/HeroScene").then((module) => ({ default: module.HeroScene })));
+const SkillsScene = lazy(() => import("./components/SkillsScene").then((module) => ({ default: module.SkillsScene })));
+const ProjectModal = lazy(() => import("./components/ProjectModal").then((module) => ({ default: module.ProjectModal })));
 
-function LinkIcon({ type }) {
-  const paths = {
-    linkedin:
-      "M6.94 8.5H3.56V20h3.38zm.22-3.69a1.96 1.96 0 1 0-3.91 0 1.96 1.96 0 0 0 3.91 0M20.75 20v-6.29c0-3.37-1.8-4.94-4.2-4.94-1.94 0-2.8 1.07-3.28 1.82V8.5H9.9c.04 1.39 0 11.5 0 11.5h3.37v-6.42c0-.34.02-.68.12-.93.27-.68.88-1.38 1.91-1.38 1.35 0 1.89 1.03 1.89 2.54V20z",
-    github:
-      "M12 2C6.48 2 2 6.58 2 12.24c0 4.53 2.87 8.38 6.84 9.74.5.1.68-.22.68-.49 0-.24-.01-1.05-.01-1.9-2.78.62-3.37-1.21-3.37-1.21-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .08 1.53 1.06 1.53 1.06.9 1.56 2.35 1.11 2.92.85.09-.67.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.08 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.28 2.75 1.05A9.3 9.3 0 0 1 12 6.84c.85 0 1.7.12 2.5.36 1.9-1.33 2.74-1.05 2.74-1.05.56 1.41.21 2.46.11 2.72.64.72 1.03 1.63 1.03 2.75 0 3.95-2.35 4.81-4.58 5.07.36.32.68.95.68 1.92 0 1.39-.01 2.5-.01 2.84 0 .27.18.6.69.49A10.26 10.26 0 0 0 22 12.24C22 6.58 17.52 2 12 2",
-    email:
-      "M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m0 2v.51l-8 6.22-8-6.22V7zm0 10H4V9.97l7.39 5.75a1 1 0 0 0 1.22 0L20 9.97z",
-    phone:
-      "M6.62 10.79a15.5 15.5 0 0 0 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C10.61 21 3 13.39 3 4c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.24.2 2.45.57 3.57.11.35.03.74-.25 1.02z",
-  };
-
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="contact-icon">
-      <path fill="currentColor" d={paths[type]} />
-    </svg>
-  );
-}
-
-function MenuIcon({ open }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="menu-icon">
-      {open ? (
-        <path
-          fill="currentColor"
-          d="M18.3 7.11 16.89 5.7 12 10.59 7.11 5.7 5.7 7.11 10.59 12 5.7 16.89 7.11 18.3 12 13.41 16.89 18.3 18.3 16.89 13.41 12z"
-        />
-      ) : (
-        <path
-          fill="currentColor"
-          d="M4 7h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"
-        />
-      )}
-    </svg>
-  );
-}
-
-function AnimatedStat({ value, suffix = "", label, start }) {
-  const [displayValue, setDisplayValue] = useState(0);
-
-  useEffect(() => {
-    if (!start) {
-      return;
-    }
-
-    let frameId;
-    const duration = 1200;
-    const startTime = performance.now();
-
-    const tick = (now) => {
-      const progress = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayValue(Math.round(value * eased));
-
-      if (progress < 1) {
-        frameId = window.requestAnimationFrame(tick);
-      }
-    };
-
-    frameId = window.requestAnimationFrame(tick);
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, [start, value]);
-
-  return (
-    <article className="reveal-card interactive-card stat-card">
-      <strong>
-        {displayValue}
-        {suffix}
-      </strong>
-      <span>{label}</span>
-    </article>
-  );
-}
+gsap.registerPlugin(ScrollTrigger);
 
 function App() {
-  const { contact, skills, projects, education, certifications, infoPoints } = portfolioData;
-  const profileImage = portfolioData.profileImage || profileImageSrc;
+  const containerRef = useRef(null);
+  const { contact, skills, projects, education, certifications, infoPoints, resume } = portfolioData;
   const [activeSection, setActiveSection] = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [statsStarted, setStatsStarted] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const profileImage = portfolioData.profileImage || profileImageSrc;
+
+  const stats = useMemo(
+    () => [
+      { value: "04", label: "featured builds" },
+      { value: "08", label: "verified certificates" },
+      { value: "24/7", label: "learning mindset" },
+    ],
+    [],
+  );
 
   useEffect(() => {
-    const revealObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            revealObserver.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.18 },
-    );
-
+    const sections = Array.from(document.querySelectorAll("section[id], header[id]"));
     const sectionObserver = new IntersectionObserver(
       (entries) => {
-        const visibleEntries = entries.filter((entry) => entry.isIntersecting);
-        if (visibleEntries.length === 0) {
+        const visible = entries.filter((entry) => entry.isIntersecting);
+        if (visible.length === 0) {
           return;
         }
-
-        const mostVisible = visibleEntries.sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        setActiveSection(mostVisible.target.id);
+        const current = visible.sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        setActiveSection(current.target.id);
       },
-      {
-        threshold: [0.2, 0.45, 0.7],
-        rootMargin: "-20% 0px -35% 0px",
-      },
+      { threshold: [0.2, 0.45, 0.7], rootMargin: "-18% 0px -42% 0px" },
     );
 
-    const revealNodes = document.querySelectorAll(".reveal-card");
-    const interactiveNodes = document.querySelectorAll(".interactive-card");
-    const sectionNodes = document.querySelectorAll("section[id], header[id]");
+    sections.forEach((section) => sectionObserver.observe(section));
 
-    revealNodes.forEach((node) => revealObserver.observe(node));
-    sectionNodes.forEach((node) => sectionObserver.observe(node));
-
-    const updateScrollProgress = () => {
-      const scrollTop = window.scrollY;
-      const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = scrollableHeight > 0 ? (scrollTop / scrollableHeight) * 100 : 0;
-      setScrollProgress(progress);
+    const updateProgress = () => {
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const nextProgress = scrollHeight > 0 ? (window.scrollY / scrollHeight) * 100 : 0;
+      setProgress(nextProgress);
     };
 
-    const cleanupFns = Array.from(interactiveNodes).map((node) => {
-      const handleMove = (event) => {
-        const rect = node.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        const rotateX = ((y / rect.height) - 0.5) * -8;
-        const rotateY = ((x / rect.width) - 0.5) * 10;
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    updateProgress();
 
-        node.style.setProperty("--rotate-x", `${rotateX.toFixed(2)}deg`);
-        node.style.setProperty("--rotate-y", `${rotateY.toFixed(2)}deg`);
-        node.classList.add("is-active");
-      };
+    return () => {
+      sectionObserver.disconnect();
+      window.removeEventListener("scroll", updateProgress);
+    };
+  }, []);
 
-      const handleLeave = () => {
-        node.style.setProperty("--rotate-x", "0deg");
-        node.style.setProperty("--rotate-y", "0deg");
-        node.classList.remove("is-active");
-      };
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [activeSection]);
 
-      node.addEventListener("pointermove", handleMove);
-      node.addEventListener("pointerleave", handleLeave);
+  useEffect(() => {
+    if (!containerRef.current) {
+      return undefined;
+    }
 
-      return () => {
-        node.removeEventListener("pointermove", handleMove);
-        node.removeEventListener("pointerleave", handleLeave);
-      };
-    });
+    const ctx = gsap.context(() => {
+      gsap.utils.toArray(".story-section").forEach((section, index) => {
+        gsap.from(section, {
+          opacity: 0,
+          y: 72,
+          duration: 1.1,
+          ease: "power3.out",
+          delay: index === 0 ? 0.06 : 0,
+          scrollTrigger: {
+            trigger: section,
+            start: "top 80%",
+          },
+        });
+      });
+    }, containerRef);
 
+    return () => ctx.revert();
+  }, []);
+
+  useEffect(() => {
     const magneticNodes = document.querySelectorAll(".magnetic-button");
-    const magneticCleanupFns = Array.from(magneticNodes).map((node) => {
+    const cleanupFns = Array.from(magneticNodes).map((node) => {
       const handleMove = (event) => {
         const rect = node.getBoundingClientRect();
         const x = event.clientX - rect.left - rect.width / 2;
@@ -190,294 +116,421 @@ function App() {
       };
     });
 
-    window.addEventListener("scroll", updateScrollProgress, { passive: true });
-    updateScrollProgress();
-
-    return () => {
-      cleanupFns.forEach((fn) => fn());
-      magneticCleanupFns.forEach((fn) => fn());
-      revealObserver.disconnect();
-      sectionObserver.disconnect();
-      window.removeEventListener("scroll", updateScrollProgress);
-    };
+    return () => cleanupFns.forEach((fn) => fn());
   }, []);
 
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [activeSection]);
-
-  useEffect(() => {
-    if (activeSection === "about" && !statsStarted) {
-      setStatsStarted(true);
-    }
-  }, [activeSection, statsStarted]);
-
-  const navLinkClass = (section) => `nav-link ${activeSection === section ? "is-current" : ""}`;
-
   return (
-    <div className="page-shell">
-      <div className="scroll-progress" aria-hidden="true">
-        <span style={{ transform: `scaleX(${scrollProgress / 100})` }} />
+    <div ref={containerRef} className="min-h-screen bg-[linear-gradient(180deg,rgba(9,8,7,0.88),rgba(7,6,5,0.95))] text-white">
+      <BackgroundScene />
+
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[70] h-1 bg-white/5">
+        <span
+          className="block h-full origin-left bg-[linear-gradient(90deg,#f4ede1,#caa86a,#6fb3a7)] shadow-[0_0_18px_rgba(202,168,106,0.38)]"
+          style={{ transform: `scaleX(${progress / 100})` }}
+        />
       </div>
-      <nav className="topbar">
-        <div className="topbar-inner">
-          <a href="#home" className="brand">
-            <span className="brand-mark">RK</span>
-            <div>
-              <p>{portfolioData.name}</p>
-              <span>{portfolioData.role}</span>
-            </div>
-          </a>
-          <button
-            type="button"
-            className="menu-toggle"
-            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((value) => !value)}
-          >
-            <MenuIcon open={menuOpen} />
-          </button>
-          <div className={`nav-links ${menuOpen ? "is-open" : ""}`}>
-            <a href="#about" className={navLinkClass("about")}>
-              About
-            </a>
-            <a href="#projects" className={navLinkClass("projects")}>
-              Projects
-            </a>
-            <a href="#education" className={navLinkClass("education")}>
-              Education
-            </a>
-            <a href="#certifications" className={navLinkClass("certifications")}>
-              Certificates
-            </a>
-            <a href="#contact" className={`nav-cta ${activeSection === "contact" ? "is-current" : ""}`}>
-              Contact
-            </a>
-          </div>
-        </div>
-      </nav>
 
-      <header className="hero reveal-card hero-reveal" id="home">
-        <div className="hero-orb hero-orb-left" aria-hidden="true" />
-        <div className="hero-orb hero-orb-right" aria-hidden="true" />
-        <div className="hero-grid">
-          <div className="hero-copy">
-            <p className="eyebrow">Available for developer roles</p>
-            <h1 className="hero-title">{portfolioData.tagline}</h1>
-            <p className="hero-text">{portfolioData.about}</p>
+      <Navigation
+        activeSection={activeSection}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        name={portfolioData.name}
+        role={portfolioData.role}
+      />
 
-            <div className="hero-actions">
-              <a href="#projects" className="primary-btn magnetic-button">
-                View Projects
-              </a>
-            </div>
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-7 px-4 pb-24 pt-6 md:px-6 md:pt-28">
+        <header id="home" className="story-section glass-panel relative overflow-hidden rounded-[34px] border border-white/10 shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(202,168,106,0.15),transparent_22%),radial-gradient(circle_at_85%_10%,rgba(111,179,167,0.14),transparent_24%),radial-gradient(circle_at_60%_100%,rgba(244,237,225,0.1),transparent_28%)]" />
+          <div className="relative grid gap-8 px-6 py-8 md:grid-cols-[1.1fr_0.9fr] md:px-10 md:py-10">
+            <div className="flex flex-col justify-between gap-8">
+              <div className="space-y-5">
+                <motion.span
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7 }}
+                  className="inline-flex rounded-full border border-amber-200/20 bg-amber-200/8 px-4 py-2 text-xs uppercase tracking-[0.35em] text-amber-100/75"
+                >
+                  {portfolioData.role}
+                </motion.span>
+                <motion.h1
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.9, delay: 0.1 }}
+                  className="max-w-4xl text-5xl font-semibold leading-[0.95] text-white md:text-7xl"
+                >
+                  <span className="bg-[linear-gradient(120deg,#ffffff_0%,#f4ede1_25%,#caa86a_56%,#ffffff_78%,#6fb3a7_100%)] bg-[length:220%_auto] bg-clip-text text-transparent [animation:shimmer_8s_linear_infinite]">
+                    {portfolioData.tagline}
+                  </span>
+                </motion.h1>
+                <motion.p
+                  initial={{ opacity: 0, y: 22 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.9, delay: 0.18 }}
+                  className="max-w-2xl text-base leading-8 text-stone-300 md:text-lg"
+                >
+                  {portfolioData.about}
+                </motion.p>
+              </div>
 
-            <div className="hero-meta">
-              <span>{contact.location}</span>
-              <span>{contact.phone}</span>
-              <span>{contact.email}</span>
-            </div>
-          </div>
+              <motion.div
+                initial={{ opacity: 0, y: 22 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, delay: 0.28 }}
+                className="flex flex-wrap gap-4"
+              >
+                <a
+                  href="#projects"
+                  className="magnetic-button inline-flex items-center justify-center rounded-full border border-amber-200/30 bg-amber-200 px-6 py-3 text-sm font-semibold text-stone-950 transition duration-300 hover:shadow-[0_0_32px_rgba(202,168,106,0.25)]"
+                >
+                  Explore Projects
+                </a>
+                <a
+                  href="#resume"
+                  className="magnetic-button inline-flex items-center justify-center rounded-full border border-emerald-200/18 bg-emerald-200/8 px-6 py-3 text-sm font-semibold text-white transition duration-300 hover:border-emerald-200/35 hover:bg-emerald-200/12"
+                >
+                  Download Resume
+                </a>
+              </motion.div>
 
-          <aside className="hero-card reveal-card interactive-card hero-aside-reveal">
-            <div className="profile-visual">
-              {profileImage ? (
-                <img src={profileImage} alt={portfolioData.name} className="profile-image" />
-              ) : (
-                <div className="profile-placeholder" aria-label="Profile placeholder">
-                  <strong>RK</strong>
-                  <span>Profile Image</span>
-                </div>
-              )}
-            </div>
-            <p className="card-label">Core Focus</p>
-            <ul>
-              {portfolioData.highlights.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-
-            <div className="contact-grid">
-              <a href={contact.linkedin} target="_blank" rel="noreferrer">
-                <LinkIcon type="linkedin" />
-                LinkedIn
-              </a>
-              <a href={contact.github} target="_blank" rel="noreferrer">
-                <LinkIcon type="github" />
-                GitHub
-              </a>
-              <a href={`mailto:${contact.email}`}>
-                <LinkIcon type="email" />
-                Email
-              </a>
-              <a href={`tel:${contact.phone.replace(/\s+/g, "")}`}>
-                <LinkIcon type="phone" />
-                Call
-              </a>
-            </div>
-          </aside>
-        </div>
-      </header>
-
-      <main>
-        <section className="content-section reveal-card reveal-from-left" id="about">
-          <SectionTitle
-            eyebrow="About"
-            title="My information"
-          />
-          <div className="about-layout">
-            <article className="about-card reveal-card interactive-card">
-              <h3>Profile Summary</h3>
-              <p>{portfolioData.about}</p>
-            </article>
-            <article className="about-card reveal-card interactive-card">
-              <h3>Key Information</h3>
-              <ul className="info-list">
-                {infoPoints.map((item) => (
-                  <li key={item}>{item}</li>
+              <motion.div
+                initial={{ opacity: 0, y: 26 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, delay: 0.34 }}
+                className="grid gap-3 sm:grid-cols-3"
+              >
+                {stats.map((stat) => (
+                  <div key={stat.label} className="rounded-3xl border border-white/10 bg-stone-950/40 px-5 py-4 backdrop-blur">
+                    <p className="text-3xl font-semibold text-white">{stat.value}</p>
+                    <p className="mt-1 text-sm uppercase tracking-[0.28em] text-stone-400">{stat.label}</p>
+                  </div>
                 ))}
-              </ul>
-            </article>
+              </motion.div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 1.05, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+              className="relative"
+            >
+              <div className="absolute -left-10 top-8 h-40 w-40 rounded-full bg-amber-200/12 blur-3xl" />
+              <div className="absolute -bottom-8 right-4 h-44 w-44 rounded-full bg-emerald-200/12 blur-3xl" />
+              <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-stone-950/65 shadow-[0_30px_120px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+                <Suspense fallback={<div className="h-[560px] w-full bg-stone-950/70" />}>
+                  <HeroScene profileImage={profileImage} />
+                </Suspense>
+              </div>
+            </motion.div>
           </div>
-          <div className="stats-grid">
-            <AnimatedStat value={4} suffix="+" label="featured projects" start={statsStarted} />
-            <AnimatedStat value={5} suffix="+" label="core frontend and backend technologies" start={statsStarted} />
-            <AnimatedStat value={2026} label="latest certification year currently listed" start={statsStarted} />
+        </header>
+
+        <section id="about" className="story-section grid gap-6 md:grid-cols-[0.9fr_1.1fr]">
+          <div className="glass-panel rounded-[30px] border border-white/10 p-7 shadow-[0_24px_80px_rgba(0,0,0,0.4)]">
+            <SectionHeading eyebrow="About me" title="Developer profile with product depth" />
+            <div className="mt-8 overflow-hidden rounded-[26px] border border-white/10 bg-stone-950/60 p-3">
+              <img
+                src={profileImage}
+                alt={portfolioData.name}
+                className="h-[420px] w-full rounded-[22px] object-contain object-center shadow-[0_28px_80px_rgba(0,0,0,0.45)]"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-6">
+            <div className="glass-panel rounded-[30px] border border-white/10 p-7">
+              <SectionHeading eyebrow="Overview" title="My Information" text={portfolioData.about} />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {infoPoints.map((point) => (
+                <motion.article
+                  key={point}
+                  whileHover={{ y: -8, rotateX: 4, rotateY: -4 }}
+                  transition={{ duration: 0.22 }}
+                  className="group rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(244,237,225,0.07),rgba(255,255,255,0.03))] p-5 backdrop-blur-xl"
+                >
+                  <p className="text-sm leading-7 text-stone-300">{point}</p>
+                </motion.article>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className="content-section reveal-card reveal-from-right" id="skills">
-          <SectionTitle
-            eyebrow="Skills"
-            title="Frontend, backend, and product engineering foundations"
-          />
-          <div className="skills-grid">
-            {skills.map((group) => (
-              <article className="skill-card reveal-card interactive-card" key={group.title}>
-                <h3>{group.title}</h3>
-                <div className="chip-wrap">
+        <section id="skills" className="story-section grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="glass-panel rounded-[30px] border border-white/10 p-7">
+            <SectionHeading
+              eyebrow="Skills"
+              title="Technical Skills"
+            />
+            <div className="mt-8 h-[340px] overflow-hidden rounded-[28px] border border-white/10 bg-stone-950/70">
+              <Suspense fallback={<div className="h-full w-full bg-stone-950/70" />}>
+                <SkillsScene skills={skills} />
+              </Suspense>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {skills.map((group, index) => (
+              <motion.article
+                key={group.title}
+                whileHover={{ y: -10, rotateX: 5, rotateY: index % 2 === 0 ? -5 : 5 }}
+                transition={{ duration: 0.24 }}
+                className="group rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(244,237,225,0.07),rgba(255,255,255,0.03))] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl"
+              >
+                <p className="text-xs uppercase tracking-[0.3em] text-amber-100/70">{group.title}</p>
+                <div className="mt-5 flex flex-wrap gap-3">
                   {group.items.map((item) => (
-                    <span className="chip" key={item}>
+                    <span
+                      key={item}
+                      className="rounded-full border border-amber-200/18 bg-amber-200/10 px-4 py-2 text-sm text-amber-50"
+                    >
                       {item}
                     </span>
                   ))}
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         </section>
 
-        <section className="content-section reveal-card reveal-pop" id="projects">
-          <SectionTitle
-            eyebrow="Projects"
-            title="Selected work across full-stack apps and AI-enabled systems"
-          />
-          <div className="project-grid">
-            {projects.map((project) => (
-              <article className="project-card reveal-card interactive-card" key={project.title}>
-                <p className="project-subtitle">{project.subtitle}</p>
-                <h3>{project.title}</h3>
-                <p>{project.description}</p>
-                <div className="chip-wrap">
-                  {project.stack.map((item) => (
-                    <span className="chip chip-dark" key={item}>
-                      {item}
-                    </span>
-                  ))}
+        <section id="projects" className="story-section glass-panel rounded-[32px] border border-white/10 p-7">
+          <SectionHeading eyebrow="Projects" title="Projects" />
+          <div className="mt-8 grid gap-5 xl:grid-cols-2">
+            {projects.map((project, index) => (
+              <motion.article
+                key={project.title}
+                whileHover={{ y: -12, rotateX: 5, rotateY: index % 2 === 0 ? -6 : 6, scale: 1.01 }}
+                transition={{ duration: 0.24 }}
+                className="group relative overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(145deg,rgba(22,18,15,0.96),rgba(11,10,9,0.78))] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.42)]"
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(202,168,106,0.14),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(111,179,167,0.12),transparent_26%)] opacity-80 transition duration-500 group-hover:scale-105" />
+                <div className="relative">
+                  <p className="text-xs uppercase tracking-[0.28em] text-stone-400">{project.subtitle}</p>
+                  <div className="mt-3 flex items-start justify-between gap-4">
+                    <h3 className="text-3xl font-semibold text-white">{project.title}</h3>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProject(project)}
+                      className="magnetic-button rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white transition hover:border-amber-200/40 hover:bg-amber-200/12"
+                    >
+                      Open
+                    </button>
+                  </div>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-300">{project.description}</p>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {project.stack.map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-xs uppercase tracking-[0.24em] text-stone-200"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    {project.links.live ? (
+                      <a
+                        href={project.links.live}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="magnetic-button rounded-full border border-amber-200/22 bg-amber-200/12 px-4 py-2 text-sm font-medium text-amber-50 transition hover:border-amber-200/50 hover:bg-amber-200/20"
+                      >
+                        Live demo
+                      </a>
+                    ) : null}
+                    {project.links.github ? (
+                      <a
+                        href={project.links.github}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="magnetic-button rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm font-medium text-white transition hover:border-white/30 hover:bg-white/12"
+                      >
+                        GitHub
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="project-links">
-                  {project.links.live ? (
-                    <a href={project.links.live} target="_blank" rel="noreferrer">
-                      Live Demo
+              </motion.article>
+            ))}
+          </div>
+        </section>
+
+        <section id="resume" className="story-section grid gap-6 lg:grid-cols-[1.04fr_0.96fr]">
+          <div className="glass-panel rounded-[32px] border border-white/10 p-7">
+            <SectionHeading
+              eyebrow="Resume"
+              title="Resume"
+            />
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              {[
+                { label: "Format", value: "PDF download" },
+                { label: "Focus", value: "Full Stack" },
+                { label: "Location", value: contact.location },
+              ].map((item) => (
+                <div key={item.label} className="rounded-[26px] border border-white/10 bg-stone-950/50 p-5">
+                  <p className="text-xs uppercase tracking-[0.28em] text-stone-400">{item.label}</p>
+                  <p className="mt-3 text-lg font-semibold text-white">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <motion.div
+            whileHover={{ y: -10, rotateX: 4, rotateY: -4 }}
+            transition={{ duration: 0.24 }}
+            className="rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(244,237,225,0.1),rgba(111,179,167,0.08))] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl"
+          >
+            <p className="text-xs uppercase tracking-[0.34em] text-amber-100/70">Resume</p>
+            <h3 className="mt-4 text-3xl font-semibold text-white">Resume / CV</h3>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
+                href={resume}
+                target="_blank"
+                rel="noreferrer"
+                className="magnetic-button rounded-full border border-amber-200/30 bg-amber-200 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:shadow-[0_0_30px_rgba(202,168,106,0.24)]"
+              >
+                Open Resume
+              </a>
+              <a
+                href={resume}
+                download
+                className="magnetic-button rounded-full border border-white/10 bg-white/6 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/28 hover:bg-white/10"
+              >
+                Download PDF
+              </a>
+            </div>
+          </motion.div>
+        </section>
+
+        <section id="education" className="story-section grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+          <div className="glass-panel rounded-[30px] border border-white/10 p-7">
+            <SectionHeading eyebrow="Education" title="Academic timeline and technical foundation" />
+            <div className="mt-8 space-y-4">
+              {education.map((item) => (
+                <motion.article
+                  key={`${item.title}-${item.year}`}
+                  whileHover={{ x: 6 }}
+                  className="rounded-[26px] border border-white/10 bg-stone-950/55 p-5"
+                >
+                  <p className="text-xs uppercase tracking-[0.3em] text-amber-100/70">{item.year}</p>
+                  <h3 className="mt-3 text-xl font-semibold text-white">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-7 text-stone-300">{item.org}</p>
+                  {item.detail ? <p className="mt-2 text-sm text-stone-400">{item.detail}</p> : null}
+                </motion.article>
+              ))}
+            </div>
+          </div>
+
+          <div id="certifications" className="glass-panel rounded-[30px] border border-white/10 p-7">
+            <SectionHeading eyebrow="Certifications" title="Certifications" />
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              {certifications.map((item, index) => (
+                <motion.article
+                  key={`${item.title}-${item.year}`}
+                  whileHover={{ y: -8, rotateX: 4, rotateY: index % 2 === 0 ? -4 : 4 }}
+                  transition={{ duration: 0.22 }}
+                  className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(244,237,225,0.07),rgba(255,255,255,0.03))] p-5"
+                >
+                  <p className="text-xs uppercase tracking-[0.28em] text-amber-100/70">{item.year}</p>
+                  <h3 className="mt-3 text-lg font-semibold text-white">{item.title}</h3>
+                  <p className="mt-2 text-sm text-stone-300">{item.issuer}</p>
+                  {item.link ? (
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="magnetic-button mt-5 inline-flex rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm font-medium text-white transition hover:border-amber-200/40 hover:bg-amber-200/14"
+                    >
+                      Verify certificate
                     </a>
                   ) : null}
-                  {project.links.github ? (
-                    <a href={project.links.github} target="_blank" rel="noreferrer">
-                      GitHub
-                    </a>
-                  ) : null}
-                </div>
-              </article>
-            ))}
+                </motion.article>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className="content-section reveal-card reveal-from-left" id="education">
-          <SectionTitle eyebrow="Education" title="Academic and industry learning path" />
-          <div className="timeline">
-            {education.map((item) => (
-              <article className="timeline-card reveal-card interactive-card" key={`${item.title}-${item.year}`}>
-                <span>{item.year}</span>
-                <h3>{item.title}</h3>
-                <p>{item.org}</p>
-                {item.detail ? <small>{item.detail}</small> : null}
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="content-section reveal-card reveal-pop" id="certifications">
-          <SectionTitle
-            eyebrow="Certifications"
-            title="Certificates and verification links"
-          />
-          <div className="certificate-grid">
-            {certifications.map((item) => (
-              <article className="timeline-card certificate-card reveal-card interactive-card" key={`${item.title}-${item.year}`}>
-                <span>{item.year}</span>
-                <h3>{item.title}</h3>
-                <p>{item.issuer}</p>
-                {item.link ? (
-                  <a href={item.link} target="_blank" rel="noreferrer" className="certificate-link magnetic-button">
-                    View Certificate
+        <section id="contact" className="story-section glass-panel rounded-[32px] border border-white/10 p-7">
+          <SectionHeading eyebrow="Contact" title="Contact Information" />
+          <div className="mt-8 grid gap-5 lg:grid-cols-[0.86fr_1.14fr]">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                { label: "Email", value: contact.email, href: `mailto:${contact.email}`, cta: "Send email" },
+                { label: "Phone", value: contact.phone, href: `tel:${contact.phone.replace(/\s+/g, "")}`, cta: "Call now" },
+                { label: "GitHub", value: "Ram0770", href: contact.github, cta: "Open GitHub" },
+                { label: "LinkedIn", value: "Professional profile", href: contact.linkedin, cta: "Open LinkedIn" },
+              ].map((item) => (
+                <motion.article
+                  key={item.label}
+                  whileHover={{ y: -8 }}
+                  className="rounded-[28px] border border-white/10 bg-stone-950/55 p-5"
+                >
+                  <p className="text-xs uppercase tracking-[0.28em] text-stone-400">{item.label}</p>
+                  <p className="mt-3 text-lg font-semibold text-white">{item.value}</p>
+                  <a
+                    href={item.href}
+                    target={item.href.startsWith("http") ? "_blank" : undefined}
+                    rel={item.href.startsWith("http") ? "noreferrer" : undefined}
+                    className="magnetic-button mt-5 inline-flex rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm font-medium text-white transition hover:border-amber-200/40 hover:bg-amber-200/14"
+                  >
+                    {item.cta}
                   </a>
-                ) : null}
-              </article>
-            ))}
-          </div>
-        </section>
+                </motion.article>
+              ))}
+            </div>
 
-        <section className="content-section reveal-card reveal-from-right" id="contact">
-          <SectionTitle
-            eyebrow="Contact"
-            title="Contact information"
-            text="Use any of the links below to reach out for jobs, freelance work, or project discussions."
-          />
-          <div className="contact-section-grid">
-            <article className="contact-card reveal-card interactive-card">
-              <span className="contact-label">Mobile</span>
-              <h3>{contact.phone}</h3>
-              <a href={`tel:${contact.phone.replace(/\s+/g, "")}`} className="magnetic-button">Call now</a>
-            </article>
-            <article className="contact-card reveal-card interactive-card">
-              <span className="contact-label">Email</span>
-              <h3>{contact.email}</h3>
-              <a href={`mailto:${contact.email}`} className="magnetic-button">Send email</a>
-            </article>
-            <article className="contact-card reveal-card interactive-card">
-              <span className="contact-label">GitHub</span>
-              <h3>Ram0770</h3>
-              <a href={contact.github} target="_blank" rel="noreferrer" className="magnetic-button">
-                Open GitHub
-              </a>
-            </article>
-            <article className="contact-card reveal-card interactive-card">
-              <span className="contact-label">LinkedIn</span>
-              <h3>Professional Profile</h3>
-              <a href={contact.linkedin} target="_blank" rel="noreferrer" className="magnetic-button">
-                Open LinkedIn
-              </a>
-            </article>
-            <article className="contact-card reveal-card interactive-card">
-              <span className="contact-label">Location</span>
-              <h3>{contact.location}</h3>
-              <a href={contact.portfolio} target="_blank" rel="noreferrer" className="magnetic-button">
-                View portfolio link
-              </a>
-            </article>
+            <motion.form
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.8 }}
+              className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(244,237,225,0.07),rgba(255,255,255,0.03))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="group relative">
+                  <span className="mb-2 block text-xs uppercase tracking-[0.28em] text-stone-400">Name</span>
+                  <input
+                    type="text"
+                    placeholder="Your name"
+                    className="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none transition focus:border-amber-200/50 focus:shadow-[0_0_0_4px_rgba(202,168,106,0.12)]"
+                  />
+                </label>
+                <label className="group relative">
+                  <span className="mb-2 block text-xs uppercase tracking-[0.28em] text-stone-400">Email</span>
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    className="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none transition focus:border-amber-200/50 focus:shadow-[0_0_0_4px_rgba(202,168,106,0.12)]"
+                  />
+                </label>
+              </div>
+              <label className="mt-4 block">
+                <span className="mb-2 block text-xs uppercase tracking-[0.28em] text-stone-400">Message</span>
+                <textarea
+                  rows="7"
+                  placeholder="Tell me about the role, project, or opportunity."
+                  className="w-full rounded-3xl border border-white/10 bg-stone-950/60 px-4 py-4 text-white outline-none transition focus:border-amber-200/50 focus:shadow-[0_0_0_4px_rgba(202,168,106,0.12)]"
+                />
+              </label>
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+                <button
+                  type="button"
+                  className="magnetic-button rounded-full border border-amber-200/30 bg-amber-200 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:shadow-[0_0_32px_rgba(202,168,106,0.24)]"
+                >
+                  Send inquiry
+                </button>
+              </div>
+            </motion.form>
           </div>
         </section>
       </main>
+
+      <AnimatePresence>
+        {selectedProject ? (
+          <Suspense fallback={null}>
+            <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} />
+          </Suspense>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
